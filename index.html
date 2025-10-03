@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运抽奖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            letter-spacing: 1px;
+        }
+
+        .prize-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .prize-list {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.5) rgba(0,0,0,0.1);
+        }
+
+        .prize-list::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .prize-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+
+        .prize-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.5);
+            border-radius: 4px;
+        }
+
+        .prize-item {
+            min-width: 200px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .prize-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .prize-item.winner {
+            border-color: #ffd700;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #ffd700; }
+            to { box-shadow: 0 0 20px #ffd700, 0 0 30px #ffd700; }
+        }
+
+        .lottery-button {
+            background: linear-gradient(45deg, #2193b0, #6dd5ed);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lottery-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(33,147,176,0.4);
+        }
+
+        .lottery-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .lottery-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(30deg);
+            transition: all 0.5s ease;
+        }
+
+        .lottery-button:hover::after {
+            transform: rotate(30deg) translate(20%, 20%);
+        }
+
+        .result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: white;
+        }
+
+        .result-text {
+            font-size: 1.3em;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .history {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 4px solid #2193b0;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.15);
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: white;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 幸运抽奖 🎉</h1>
+        <p>试试你的手气，赢取精美奖品！</p>
+    </div>
+
+    <div class="prize-container">
+        <div class="prize-list" id="prizeList">
+            <div class="prize-item" data-prize="ubuntu卡片U盘(16G,限量一张)">
+                <h4>Ubuntu卡片U盘</h4>
+                <p>16GB | 限量一张</p>
+            </div>
+            <div class="prize-item" data-prize="我的世界服务器">
+                <h4>我的世界服务器</h4>
+                <p>性能流畅 | 限量两个</p>
+            </div>
+            <div class="prize-item" data-prize="群管理权限">
+                <h4>群管理权限</h4>
+                <p>获得群管理</p>
+            </div>
+            <div class="prize-item" data-prize="蛋仔派对皮肤兑换码">
+                <h4>蛋仔派对</h4>
+                <p>皮肤兑换码</p>
+            </div>
+            <div class="prize-item" data-prize="草方块社区账号">
+                <h4>草方块社区</h4>
+                <p>社区账号</p>
+            </div>
+            <div class="prize-item" data-prize="正版我的世界账号">
+                <h4>正版我的世界</h4>
+                <p>游戏账号</p>
+            </div>
+        </div>
+    </div>
+
+    <button class="lottery-button" id="lotteryBtn" onclick="startLottery()">开始抽奖</button>
+
+    <div class="result" id="result">
+        <div class="result-text">点击按钮开始抽奖吧！</div>
+    </div>
+
+    <div class="history">
+        <h3>抽奖记录</h3>
+        <div id="historyList"></div>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>提示</h3>
+            <p id="modalText"></p>
+        </div>
+    </div>
+
+    <script>
+        // 奖品列表
+        const prizes = [
+            { name: "ubuntu卡片U盘(16G,限量一张)", weight: 0 }, // 第一个选项抽不中
+            { name: "我的世界服务器", weight: 20 },
+            { name: "群管理权限", weight: 25 },
+            { name: "蛋仔派对皮肤兑换码", weight: 20 },
+            { name: "草方块社区账号", weight: 20 },
+            { name: "正版我的世界账号", weight: 15 }
+        ];
+
+        // Cookie操作函数
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/';
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // 检查是否已经抽奖
+        function hasDrawnToday() {
+            const lastDraw = getCookie('lastDraw');
+            if (!lastDraw) return false;
+            
+            const lastDrawDate = new Date(lastDraw);
+            const today = new Date();
+            return lastDrawDate.toDateString() === today.toDateString();
+        }
+
+        // 获取抽奖历史
+        function getDrawHistory() {
+            const history = getCookie('drawHistory');
+            return history ? JSON.parse(history) : [];
+        }
+
+        // 保存抽奖历史
+        function saveDrawHistory(history) {
+            setCookie('drawHistory', JSON.stringify(history), 30);
+        }
+
+        // 显示抽奖历史
+        function displayHistory() {
+            const history = getDrawHistory();
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-item">暂无抽奖记录</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => 
+                `<div class="history-item">${item.date} - 抽中：${item.prize}</div>`
+            ).join('');
+        }
+
+        // 显示模态框
+        function showModal(text) {
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // 开始抽奖
+        function startLottery() {
+            // 检查是否已经抽奖
+            if (hasDrawnToday()) {
+                showModal('您今天已经抽奖过了，请明天再来！');
+                return;
+            }
+
+            const button = document.getElementById('lotteryBtn');
+            button.disabled = true;
+            button.textContent = '抽奖中...';
+
+            // 清除之前的获奖状态
+            document.querySelectorAll('.prize-item').forEach(item => {
+                item.classList.remove('winner');
+            });
+
+            // 模拟抽奖过程
+            let count = 0;
+            const maxCount = 20;
+            const interval = setInterval(() => {
+                // 随机高亮一个奖品
+                const items = document.querySelectorAll('.prize-item');
+                items.forEach(item => item.classList.remove('winner'));
+                
+                const randomIndex = Math.floor(Math.random() * items.length);
+                items[randomIndex].classList.add('winner');
+
+                count++;
+                if (count >= maxCount) {
+                    clearInterval(interval);
+                    finalizeLottery();
+                }
+            }, 100);
+        }
+
+        // 完成抽奖
+        function finalizeLottery() {
+            // 根据权重选择奖品
+            const winner = selectPrizeByWeight();
+            
+            // 高亮获奖奖品
+            document.querySelectorAll('.prize-item').forEach(item => {
+                item.classList.remove('winner');
+                if (item.dataset.prize === winner.name) {
+                    item.classList.add('winner');
+                }
+            });
+
+            // 显示结果
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result-text">🎉 恭喜你抽中了：${winner.name} 🎉</div>`;
+
+            // 保存抽奖记录
+            const history = getDrawHistory();
+            history.push({
+                date: new Date().toLocaleString('zh-CN'),
+                prize: winner.name
+            });
+            saveDrawHistory(history);
+            displayHistory();
+
+            // 设置今日已抽奖
+            setCookie('lastDraw', new Date().toISOString(), 1);
+
+            // 恢复按钮
+            const button = document.getElementById('lotteryBtn');
+            button.disabled = false;
+            button.textContent = '今日已抽奖';
+            button.disabled = true;
+        }
+
+        // 根据权重选择奖品
+        function selectPrizeByWeight() {
+            const totalWeight = prizes.reduce((sum, prize) => sum + prize.weight, 0);
+            let random = Math.random() * totalWeight;
+            
+            for (let prize of prizes) {
+                random -= prize.weight;
+                if (random <= 0) {
+                    return prize;
+                }
+            }
+            
+            return prizes[prizes.length - 1];
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            displayHistory();
+            
+            // 检查是否已经抽奖
+            if (hasDrawnToday()) {
+                const button = document.getElementById('lotteryBtn');
+                button.textContent = '今日已抽奖';
+                button.disabled = true;
+            }
+        };
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>
